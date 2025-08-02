@@ -5,61 +5,90 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Karel Robot Game - Hand Gesture Control</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 20px;
-            background-color: #f0f0f0;
+            padding: 0;
+            background: linear-gradient(135deg, #ff4757 0%, #ff3838 50%, #ff2d2d 100%);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
         h1 {
-            color: #333;
-            margin-bottom: 20px;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            letter-spacing: -0.5px;
         }
 
         .game-container {
             display: flex;
-            gap: 20px;
+            gap: 25px;
             align-items: flex-start;
             flex-wrap: wrap;
             justify-content: center;
+            /* max-width: 1400px; */
+            width: 100%;
         }
 
         .grid-container {
-            background-color: white;
-            border: 2px solid #333;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .grid-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #ff4757;
+            font-size: 1.3rem;
+            font-weight: 600;
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(8, 50px);
-            grid-template-rows: repeat(8, 50px);
-            gap: 1px;
-            background-color: #333;
+            grid-template-columns: repeat(8, 55px);
+            grid-template-rows: repeat(8, 55px);
+            gap: 2px;
+            background-color: #ff4757;
+            border-radius: 12px;
+            padding: 8px;
         }
 
         .cell {
-            width: 50px;
-            height: 50px;
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
+            width: 55px;
+            height: 55px;
+            background-color: white;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
             font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(255,71,87,0.3);
         }
 
         .karel {
-            width: 30px;
-            height: 30px;
-            background-color: #ff6b6b;
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(45deg, #ff4757, #ff3838);
             border-radius: 50%;
             position: absolute;
             display: flex;
@@ -68,6 +97,14 @@
             font-weight: bold;
             color: white;
             z-index: 10;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(255,71,87,0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
 
         .karel.north::after { content: "↑"; }
@@ -76,121 +113,268 @@
         .karel.west::after { content: "←"; }
 
         .beeper {
-            width: 20px;
-            height: 20px;
-            background-color: #4ecdc4;
+            width: 25px;
+            height: 25px;
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
             border-radius: 50%;
-            border: 2px solid #45b7aa;
+            border: 3px solid white;
             position: absolute;
             z-index: 5;
+            box-shadow: 0 2px 8px rgba(0,212,255,0.4);
+            animation: sparkle 2s infinite alternate;
+        }
+
+        @keyframes sparkle {
+            0% { transform: scale(1) rotate(0deg); }
+            100% { transform: scale(1.15) rotate(180deg); }
         }
 
         .controls {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            max-width: 20em;
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            max-width: 30em;
         }
 
         .controls h3 {
             margin-top: 0;
-            color: #333;
+            margin-bottom: 20px;
+            color: #ff4757;
+            font-size: 1.4rem;
+            font-weight: 600;
+            text-align: center;
         }
 
         button {
             width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-            background-color: #4CAF50;
+            padding: 15px;
+            margin: 4px 0;
+            background: linear-gradient(45deg, #ff4757, #ff3838);
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.3s;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover::before {
+            left: 100%;
         }
 
         button:hover {
-            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255,71,87,0.4);
         }
 
         button:active {
-            transform: translateY(1px);
+            transform: translateY(0);
         }
 
         .camera-container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
             text-align: center;
+            min-width: 360px;
+        }
+
+        .camera-container h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #ff4757;
+            font-size: 1.4rem;
+            font-weight: 600;
         }
 
         #video {
             width: 320px;
             height: 240px;
-            border: 2px solid #333;
-            border-radius: 8px;
-            transform: scaleX(-1); /* Mirror the video */
+            border: 3px solid #ff4757;
+            border-radius: 15px;
+            transform: scaleX(-1);
+            box-shadow: 0 8px 25px rgba(255,71,87,0.3);
         }
 
         .gesture-status {
-            background-color: #e8f4f8;
+            background: linear-gradient(135deg, #ff4757, #ff3838);
+            color: white;
             padding: 15px;
-            border-radius: 4px;
-            margin-top: 10px;
-            font-size: 14px;
-            font-weight: bold;
+            border-radius: 12px;
+            margin-top: 15px;
+            font-size: 15px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(255,71,87,0.3);
         }
 
         .info {
-            background-color: #e8f4f8;
-            padding: 15px;
-            border-radius: 4px;
+            background: linear-gradient(135deg, #f1f2f6, #ddd);
+            padding: 20px;
+            border-radius: 12px;
             margin-top: 20px;
             font-size: 14px;
+            border-left: 4px solid #ff4757;
+        }
+
+        .info strong {
+            color: #ff4757;
         }
 
         .status {
-            background-color: #fff3cd;
-            border: 1px solid #ffeaa7;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
-            font-size: 14px;
+            background: white;
+            border: 2px solid #ff4757;
+            color: #ff4757;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+            font-size: 15px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s ease;
         }
 
         .beeper-count {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
+            background: linear-gradient(135deg, #ff4757, #ff3838);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
             text-align: center;
-            font-weight: bold;
+            font-weight: 700;
+            font-size: 18px;
+            box-shadow: 0 4px 15px rgba(255,71,87,0.3);
         }
 
         .toggle-button {
-            background-color: #007bff;
-            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00d4ff, #0099cc) !important;
+            margin-bottom: 15px;
         }
 
         .toggle-button:hover {
-            background-color: #0056b3;
+            box-shadow: 0 8px 25px rgba(0,212,255,0.4);
         }
 
         .gesture-guide {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 4px;
-            margin-top: 10px;
-            font-size: 13px;
-            line-height: 1.4;
+            background: linear-gradient(135deg, #f1f2f6, #ddd);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+            border-left: 4px solid #ff4757;
+        }
+
+        .gesture-guide strong {
+            color: #ff4757;
+            font-size: 16px;
         }
 
         .loading {
-            color: #666;
+            color: rgba(255,255,255,0.8);
             font-style: italic;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2rem;
+                margin-bottom: 20px;
+            }
+
+            .game-container {
+                gap: 20px;
+            }
+
+            .grid {
+                grid-template-columns: repeat(8, 45px);
+                grid-template-rows: repeat(8, 45px);
+            }
+
+            .cell {
+                width: 45px;
+                height: 45px;
+            }
+
+            .karel {
+                width: 30px;
+                height: 30px;
+            }
+
+            .controls, .camera-container {
+                min-width: auto;
+                width: 100%;
+                max-width: 400px;
+            }
+
+            #video {
+                width: 280px;
+                height: 210px;
+            }
+        }
+
+        /* Floating animations */
+        .grid-container {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .controls {
+            animation: float 6s ease-in-out infinite 1s;
+        }
+
+        .camera-container {
+            animation: float 6s ease-in-out infinite 2s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Success/Error animations */
+        .status.success {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: white;
+            border-color: #00d4ff;
+            animation: successPulse 0.6s ease;
+        }
+
+        .status.error {
+            background: linear-gradient(135deg, #ff6b6b, #ff5252);
+            color: white;
+            border-color: #ff6b6b;
+            animation: errorShake 0.6s ease;
+        }
+
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes errorShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
         }
     </style>
 
@@ -199,41 +383,50 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 </head>
 <body>
-    <h1>Karel Robot Game - Hand Gesture Control</h1>
+    <h1>🤖 Karel Robot Game</h1>
     
     <div class="game-container">
         <div class="grid-container">
+            <div class="grid-title">Game World</div>
             <div class="grid" id="grid"></div>
+        </div>
+
+        <div class="camera-container">
+            <h3>📷 Camera Feed</h3>
+            <video id="video" autoplay muted></video>
+            <div class="gesture-status" id="gestureStatus">
+                <span class="loading">Click "Enable Gesture Control" to start</span>
+            </div>
         </div>
         
         <div class="controls">
-            <h3>Karel Commands</h3>
+            <h3>🎮 Karel Commands</h3>
             <button class="toggle-button" onclick="toggleGestureControl()" id="gestureToggle">
-                Enable Gesture Control
+                🤚 Enable Gesture Control
             </button>
-            <button onclick="move()">move()</button>
-            <button onclick="turnLeft()">turnLeft()</button>
-            <button onclick="turnRight()">turnRight()</button>
-            <button onclick="pickBeeper()">pickBeeper()</button>
-            <button onclick="putBeeper()">putBeeper()</button>
+            <button onclick="move()">⬆️ move()</button>
+            <button onclick="turnLeft()">↩️ turnLeft()</button>
+            <button onclick="turnRight()">↪️ turnRight()</button>
+            <button onclick="pickBeeper()">📦 pickBeeper()</button>
+            <button onclick="putBeeper()">📤 putBeeper()</button>
             
             <div class="beeper-count">
-                Beepers in bag: <span id="beeperCount">5</span>
+                💎 Beepers: <span id="beeperCount">5</span>
             </div>
             
-            <div class="status" id="status">Ready to start!</div>
+            <div class="status" id="status">🚀 Ready to start!</div>
             
             <div class="gesture-guide">
-                <strong>Hand Gestures:</strong><br>
+                <strong>🤚 Hand Gestures:</strong><br>
                 👆 Point finger up → move()<br>
                 ✋ Open hand left → turnLeft()<br>
                 ✋ Open hand right → turnRight()<br>
-                � Thumbs up → pickBeeper()<br>
+                👍 Thumbs up → pickBeeper()<br>
                 ✊ Closed fist → putBeeper()
             </div>
             
             <div class="info">
-                <strong>Keyboard shortcuts:</strong><br>
+                <strong>⌨️ Keyboard shortcuts:</strong><br>
                 W/↑ - move()<br>
                 A/← - turnLeft()<br>
                 D/→ - turnRight()<br>
@@ -242,13 +435,7 @@
             </div>
         </div>
         
-        <div class="camera-container">
-            <h3>Camera Feed</h3>
-            <video id="video" autoplay muted></video>
-            <div class="gesture-status" id="gestureStatus">
-                <span class="loading">Click "Enable Gesture Control" to start</span>
-            </div>
-        </div>
+        
     </div>
 
     <script>
@@ -329,8 +516,18 @@
         function setStatus(message, isError = false) {
             const status = document.getElementById('status');
             status.textContent = message;
-            status.style.backgroundColor = isError ? '#f8d7da' : '#d1ecf1';
-            status.style.borderColor = isError ? '#f5c6cb' : '#bee5eb';
+            status.className = 'status';
+            
+            if (isError) {
+                status.classList.add('error');
+            } else {
+                status.classList.add('success');
+            }
+            
+            // Remove animation classes after animation completes
+            setTimeout(() => {
+                status.classList.remove('success', 'error');
+            }, 600);
         }
 
         // Karel commands
@@ -346,13 +543,13 @@
             }
             
             if (newX < 0 || newX >= gridSize || newY < 0 || newY >= gridSize) {
-                setStatus("Can't move - wall ahead!", true);
+                setStatus("🚫 Can't move - wall ahead!", true);
                 return;
             }
             
             karel.x = newX;
             karel.y = newY;
-            setStatus(`Moved ${karel.direction} to (${karel.x}, ${karel.y})`);
+            setStatus(`✅ Moved ${karel.direction} to (${karel.x}, ${karel.y})`);
             updateDisplay();
         }
 
@@ -360,7 +557,7 @@
             const directions = ['north', 'west', 'south', 'east'];
             const currentIndex = directions.indexOf(karel.direction);
             karel.direction = directions[(currentIndex + 1) % 4];
-            setStatus(`Turned left, now facing ${karel.direction}`);
+            setStatus(`🔄 Turned left, now facing ${karel.direction}`);
             updateDisplay();
         }
 
@@ -368,7 +565,7 @@
             const directions = ['north', 'east', 'south', 'west'];
             const currentIndex = directions.indexOf(karel.direction);
             karel.direction = directions[(currentIndex + 1) % 4];
-            setStatus(`Turned right, now facing ${karel.direction}`);
+            setStatus(`🔄 Turned right, now facing ${karel.direction}`);
             updateDisplay();
         }
 
@@ -376,10 +573,10 @@
             if (grid[karel.y][karel.x].hasBeeper) {
                 grid[karel.y][karel.x].hasBeeper = false;
                 karel.beepers++;
-                setStatus(`Picked up beeper! Total: ${karel.beepers}`);
+                setStatus(`💎 Picked up beeper! Total: ${karel.beepers}`);
                 updateDisplay();
             } else {
-                setStatus("No beeper here to pick up!", true);
+                setStatus("❌ No beeper here to pick up!", true);
             }
         }
 
@@ -388,13 +585,13 @@
                 if (!grid[karel.y][karel.x].hasBeeper) {
                     grid[karel.y][karel.x].hasBeeper = true;
                     karel.beepers--;
-                    setStatus(`Put down beeper! Remaining: ${karel.beepers}`);
+                    setStatus(`📤 Put down beeper! Remaining: ${karel.beepers}`);
                     updateDisplay();
                 } else {
-                    setStatus("There's already a beeper here!", true);
+                    setStatus("⚠️ There's already a beeper here!", true);
                 }
             } else {
-                setStatus("No beepers in bag!", true);
+                setStatus("🚫 No beepers in bag!", true);
             }
         }
 
@@ -421,7 +618,7 @@
                 });
             } catch (error) {
                 console.error('Error accessing camera:', error);
-                updateGestureStatus('Camera access denied: ' + error.message);
+                updateGestureStatus('📷 Camera access denied: ' + error.message);
                 return null;
             }
         }
@@ -433,7 +630,7 @@
             
             hands.setOptions({
                 maxNumHands: 1,
-                modelComplexity: 0,  // Changed to 0 for faster performance
+                modelComplexity: 0,
                 minDetectionConfidence: 0.7,
                 minTrackingConfidence: 0.5
             });
@@ -457,7 +654,7 @@
                 const gesture = recognizeGesture(landmarks);
                 processGesture(gesture);
             } else {
-                updateGestureStatus('No hand detected');
+                updateGestureStatus('👋 Show your hand to the camera');
             }
         }
 
@@ -541,7 +738,7 @@
                     turnRight();
                     break;
                 case 'thumbs_up':
-                    updateGestureStatus('� Thumbs up - Picking beeper!');
+                    updateGestureStatus('👍 Thumbs up - Picking beeper!');
                     pickBeeper();
                     break;
                 case 'fist':
@@ -549,7 +746,7 @@
                     putBeeper();
                     break;
                 default:
-                    updateGestureStatus(`Gesture: ${gesture}`);
+                    updateGestureStatus(`🤔 Gesture: ${gesture}`);
             }
             
             // Reset debounce after delay
@@ -568,20 +765,21 @@
             
             if (!gestureEnabled) {
                 button.disabled = true;
-                button.textContent = 'Loading...';
-                updateGestureStatus('Setting up camera...');
+                button.textContent = '⏳ Loading...';
+                updateGestureStatus('📷 Setting up camera...');
                 const cameraReady = await setupCamera();
                 
                 if (cameraReady) {
-                    updateGestureStatus('Loading hand detection model...');
+                    updateGestureStatus('🤖 Loading hand detection model...');
                     setupHandDetection();
                     gestureEnabled = true;
-                    button.textContent = 'Disable Gesture Control';
-                    button.style.backgroundColor = '#dc3545';
-                    updateGestureStatus('Gesture control active! Show your hand to the camera.');
+                    button.textContent = '🛑 Disable Gesture Control';
+                    button.style.background = 'linear-gradient(45deg, #ff6b6b, #ff5252)';
+                    updateGestureStatus('✅ Gesture control active! Show your hand to the camera.');
                 } else {
-                    updateGestureStatus('Failed to access camera');
+                    updateGestureStatus('❌ Failed to access camera');
                 }
+                button.disabled = false;
             } else {
                 // Stop camera
                 const stream = video.srcObject;
@@ -591,9 +789,9 @@
                 }
                 
                 gestureEnabled = false;
-                button.textContent = 'Enable Gesture Control';
-                button.style.backgroundColor = '#007bff';
-                updateGestureStatus('Gesture control disabled');
+                button.textContent = '🤚 Enable Gesture Control';
+                button.style.background = 'linear-gradient(45deg, #00d4ff, #0099cc)';
+                updateGestureStatus('🚫 Gesture control disabled');
             }
         }
 
