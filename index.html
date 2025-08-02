@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karel Robot Game - Hand Gesture Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .grid-container {
+            background-color: white;
+            border: 2px solid #333;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            gap: 1px;
+            background-color: #333;
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-size: 12px;
+        }
+
+        .karel {
+            width: 30px;
+            height: 30px;
+            background-color: #ff6b6b;
+            border-radius: 50%;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            z-index: 10;
+        }
+
+        .karel.north::after { content: "↑"; }
+        .karel.east::after { content: "→"; }
+        .karel.south::after { content: "↓"; }
+        .karel.west::after { content: "←"; }
+
+        .beeper {
+            width: 20px;
+            height: 20px;
+            background-color: #4ecdc4;
+            border-radius: 50%;
+            border: 2px solid #45b7aa;
+            position: absolute;
+            z-index: 5;
+        }
+
+        .controls {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-width: 20em;
+        }
+
+        .controls h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .camera-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        #video {
+            width: 320px;
+            height: 240px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            transform: scaleX(-1); /* Mirror the video */
+        }
+
+        .gesture-status {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .info {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .status {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .beeper-count {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .toggle-button {
+            background-color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        .toggle-button:hover {
+            background-color: #0056b3;
+        }
+
+        .gesture-guide {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+</head>
+<body>
+    <h1>Karel Robot Game - Hand Gesture Control</h1>
+    
+    <div class="game-container">
+        <div class="grid-container">
+            <div class="grid" id="grid"></div>
+        </div>
+        
+        <div class="controls">
+            <h3>Karel Commands</h3>
+            <button class="toggle-button" onclick="toggleGestureControl()" id="gestureToggle">
+                Enable Gesture Control
+            </button>
+            <button onclick="move()">move()</button>
+            <button onclick="turnLeft()">turnLeft()</button>
+            <button onclick="turnRight()">turnRight()</button>
+            <button onclick="pickBeeper()">pickBeeper()</button>
+            <button onclick="putBeeper()">putBeeper()</button>
+            
+            <div class="beeper-count">
+                Beepers in bag: <span id="beeperCount">5</span>
+            </div>
+            
+            <div class="status" id="status">Ready to start!</div>
+            
+            <div class="gesture-guide">
+                <strong>Hand Gestures:</strong><br>
+                👆 Point finger up → move()<br>
+                ✋ Open hand left → turnLeft()<br>
+                ✋ Open hand right → turnRight()<br>
+                � Thumbs up → pickBeeper()<br>
+                ✊ Closed fist → putBeeper()
+            </div>
+            
+            <div class="info">
+                <strong>Keyboard shortcuts:</strong><br>
+                W/↑ - move()<br>
+                A/← - turnLeft()<br>
+                D/→ - turnRight()<br>
+                S/↓ - pickBeeper()<br>
+                Space - putBeeper()
+            </div>
+        </div>
+        
+        <div class="camera-container">
+            <h3>Camera Feed</h3>
+            <video id="video" autoplay muted></video>
+            <div class="gesture-status" id="gestureStatus">
+                <span class="loading">Click "Enable Gesture Control" to start</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let karel = {
+            x: 0,
+            y: 7,
+            direction: 'east',
+            beepers: 5
+        };
+
+        const gridSize = 8;
+        let grid = [];
+        let gameGrid;
+        
+        // Gesture control variables
+        let gestureEnabled = false;
+        let video, hands;
+        let lastGesture = '';
+        let gestureDebounce = false;
+        let gestureTimeout;
+
+        // Initialize the game
+        function initGame() {
+            gameGrid = document.getElementById('grid');
+            
+            for (let row = 0; row < gridSize; row++) {
+                grid[row] = [];
+                for (let col = 0; col < gridSize; col++) {
+                    grid[row][col] = { hasBeeper: false };
+                    
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `cell-${col}-${row}`;
+                    gameGrid.appendChild(cell);
+                }
+            }
+            
+            addInitialBeepers();
+            updateDisplay();
+        }
+
+        function addInitialBeepers() {
+            const beeperPositions = [
+                {x: 3, y: 3}, {x: 5, y: 1}, {x: 2, y: 6}, 
+                {x: 6, y: 4}, {x: 1, y: 2}
+            ];
+            
+            beeperPositions.forEach(pos => {
+                if (pos.x < gridSize && pos.y < gridSize) {
+                    grid[pos.y][pos.x].hasBeeper = true;
+                }
+            });
+        }
+
+        function updateDisplay() {
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    const cell = document.getElementById(`cell-${col}-${row}`);
+                    cell.innerHTML = '';
+                    
+                    if (grid[row][col].hasBeeper) {
+                        const beeper = document.createElement('div');
+                        beeper.className = 'beeper';
+                        cell.appendChild(beeper);
+                    }
+                }
+            }
+            
+            const karelCell = document.getElementById(`cell-${karel.x}-${karel.y}`);
+            const karelElement = document.createElement('div');
+            karelElement.className = `karel ${karel.direction}`;
+            karelCell.appendChild(karelElement);
+            
+            document.getElementById('beeperCount').textContent = karel.beepers;
+        }
+
+        function setStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.backgroundColor = isError ? '#f8d7da' : '#d1ecf1';
+            status.style.borderColor = isError ? '#f5c6cb' : '#bee5eb';
+        }
+
+        // Karel commands
+        function move() {
+            let newX = karel.x;
+            let newY = karel.y;
+            
+            switch (karel.direction) {
+                case 'north': newY--; break;
+                case 'east': newX++; break;
+                case 'south': newY++; break;
+                case 'west': newX--; break;
+            }
+            
+            if (newX < 0 || newX >= gridSize || newY < 0 || newY >= gridSize) {
+                setStatus("Can't move - wall ahead!", true);
+                return;
+            }
+            
+            karel.x = newX;
+            karel.y = newY;
+            setStatus(`Moved ${karel.direction} to (${karel.x}, ${karel.y})`);
+            updateDisplay();
+        }
+
+        function turnLeft() {
+            const directions = ['north', 'west', 'south', 'east'];
+            const currentIndex = directions.indexOf(karel.direction);
+            karel.direction = directions[(currentIndex + 1) % 4];
+            setStatus(`Turned left, now facing ${karel.direction}`);
+            updateDisplay();
+        }
+
+        function turnRight() {
+            const directions = ['north', 'east', 'south', 'west'];
+            const currentIndex = directions.indexOf(karel.direction);
+            karel.direction = directions[(currentIndex + 1) % 4];
+            setStatus(`Turned right, now facing ${karel.direction}`);
+            updateDisplay();
+        }
+
+        function pickBeeper() {
+            if (grid[karel.y][karel.x].hasBeeper) {
+                grid[karel.y][karel.x].hasBeeper = false;
+                karel.beepers++;
+                setStatus(`Picked up beeper! Total: ${karel.beepers}`);
+                updateDisplay();
+            } else {
+                setStatus("No beeper here to pick up!", true);
+            }
+        }
+
+        function putBeeper() {
+            if (karel.beepers > 0) {
+                if (!grid[karel.y][karel.x].hasBeeper) {
+                    grid[karel.y][karel.x].hasBeeper = true;
+                    karel.beepers--;
+                    setStatus(`Put down beeper! Remaining: ${karel.beepers}`);
+                    updateDisplay();
+                } else {
+                    setStatus("There's already a beeper here!", true);
+                }
+            } else {
+                setStatus("No beepers in bag!", true);
+            }
+        }
+
+        // Gesture recognition functions
+        async function setupCamera() {
+            video = document.getElementById('video');
+            try {
+                console.log('Requesting camera access...');
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 320 },
+                        height: { ideal: 240 },
+                        facingMode: 'user',
+                        frameRate: { ideal: 30 }
+                    } 
+                });
+                video.srcObject = stream;
+                console.log('Camera access granted');
+                return new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        console.log('Video metadata loaded');
+                        resolve(video);
+                    };
+                });
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                updateGestureStatus('Camera access denied: ' + error.message);
+                return null;
+            }
+        }
+
+        function setupHandDetection() {
+            hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            });
+            
+            hands.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 0,  // Changed to 0 for faster performance
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.5
+            });
+            
+            hands.onResults(onResults);
+            
+            const camera = new Camera(video, {
+                onFrame: async () => {
+                    await hands.send({ image: video });
+                },
+                width: 320,
+                height: 240
+            });
+            
+            camera.start();
+        }
+
+        function onResults(results) {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                const gesture = recognizeGesture(landmarks);
+                processGesture(gesture);
+            } else {
+                updateGestureStatus('No hand detected');
+            }
+        }
+
+        function recognizeGesture(landmarks) {
+            // Get key landmarks
+            const thumb_tip = landmarks[4];
+            const index_tip = landmarks[8];
+            const middle_tip = landmarks[12];
+            const ring_tip = landmarks[16];
+            const pinky_tip = landmarks[20];
+            
+            const thumb_mcp = landmarks[2];
+            const index_mcp = landmarks[5];
+            const middle_mcp = landmarks[9];
+            const ring_mcp = landmarks[13];
+            const pinky_mcp = landmarks[17];
+            
+            // Check if fingers are extended
+            const thumbUp = thumb_tip.y < thumb_mcp.y;
+            const indexUp = index_tip.y < index_mcp.y;
+            const middleUp = middle_tip.y < middle_mcp.y;
+            const ringUp = ring_tip.y < ring_mcp.y;
+            const pinkyUp = pinky_tip.y < pinky_mcp.y;
+            
+            const extendedFingers = [thumbUp, indexUp, middleUp, ringUp, pinkyUp].filter(x => x).length;
+            
+            // Pointing gesture (only index finger up)
+            if (indexUp && !middleUp && !ringUp && !pinkyUp) {
+                return 'point';
+            }
+            
+            // Thumbs up gesture (only thumb up)
+            if (thumbUp && !indexUp && !middleUp && !ringUp && !pinkyUp) {
+                return 'thumbs_up';
+            }
+            
+            // Open hand gestures
+            if (extendedFingers >= 4) {
+                const wrist = landmarks[0];
+                const handCenter = {
+                    x: (thumb_tip.x + index_tip.x + middle_tip.x + ring_tip.x + pinky_tip.x) / 5,
+                    y: (thumb_tip.y + index_tip.y + middle_tip.y + ring_tip.y + pinky_tip.y) / 5
+                };
+                
+                // Determine hand direction based on finger positions relative to wrist
+                if (handCenter.x < wrist.x - 0.05) {
+                    return 'open_right';
+                } else if (handCenter.x > wrist.x + 0.05) {
+                    return 'open_left';
+                }
+            }
+            
+            // Closed fist (no fingers extended)
+            if (extendedFingers === 0) {
+                return 'fist';
+            }
+            
+            return 'unknown';
+        }
+
+        function processGesture(gesture) {
+            if (gesture === lastGesture || gestureDebounce) return;
+            
+            lastGesture = gesture;
+            gestureDebounce = true;
+            
+            // Clear previous timeout
+            if (gestureTimeout) clearTimeout(gestureTimeout);
+            
+            switch (gesture) {
+                case 'point':
+                    updateGestureStatus('👆 Pointing - Moving forward!');
+                    move();
+                    break;
+                case 'open_left':
+                    updateGestureStatus('✋ Open hand left - Turning left!');
+                    turnLeft();
+                    break;
+                case 'open_right':
+                    updateGestureStatus('✋ Open hand right - Turning right!');
+                    turnRight();
+                    break;
+                case 'thumbs_up':
+                    updateGestureStatus('� Thumbs up - Picking beeper!');
+                    pickBeeper();
+                    break;
+                case 'fist':
+                    updateGestureStatus('✊ Closed fist - Putting beeper!');
+                    putBeeper();
+                    break;
+                default:
+                    updateGestureStatus(`Gesture: ${gesture}`);
+            }
+            
+            // Reset debounce after delay
+            gestureTimeout = setTimeout(() => {
+                gestureDebounce = false;
+                lastGesture = '';
+            }, 1000);
+        }
+
+        function updateGestureStatus(message) {
+            document.getElementById('gestureStatus').textContent = message;
+        }
+
+        async function toggleGestureControl() {
+            const button = document.getElementById('gestureToggle');
+            
+            if (!gestureEnabled) {
+                button.disabled = true;
+                button.textContent = 'Loading...';
+                updateGestureStatus('Setting up camera...');
+                const cameraReady = await setupCamera();
+                
+                if (cameraReady) {
+                    updateGestureStatus('Loading hand detection model...');
+                    setupHandDetection();
+                    gestureEnabled = true;
+                    button.textContent = 'Disable Gesture Control';
+                    button.style.backgroundColor = '#dc3545';
+                    updateGestureStatus('Gesture control active! Show your hand to the camera.');
+                } else {
+                    updateGestureStatus('Failed to access camera');
+                }
+            } else {
+                // Stop camera
+                const stream = video.srcObject;
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    video.srcObject = null;
+                }
+                
+                gestureEnabled = false;
+                button.textContent = 'Enable Gesture Control';
+                button.style.backgroundColor = '#007bff';
+                updateGestureStatus('Gesture control disabled');
+            }
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', function(event) {
+            switch(event.key.toLowerCase()) {
+                case 'w':
+                case 'arrowup':
+                    event.preventDefault();
+                    move();
+                    break;
+                case 'a':
+                case 'arrowleft':
+                    event.preventDefault();
+                    turnLeft();
+                    break;
+                case 'd':
+                case 'arrowright':
+                    event.preventDefault();
+                    turnRight();
+                    break;
+                case 's':
+                case 'arrowdown':
+                    event.preventDefault();
+                    pickBeeper();
+                    break;
+                case ' ':
+                    event.preventDefault();
+                    putBeeper();
+                    break;
+            }
+        });
+
+        // Start the game
+        initGame();
+    </script>
+</body>
+</html>
